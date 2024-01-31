@@ -3,6 +3,10 @@ Pytorch implementation
 
 **Authors**: *[Sami Arja](https://samiarja.com/)*
 
+[[Project Page](https://samiarja.github.io/evairborne/)] [[Paper]()]
+
+Work in progress...
+
 # Installation
 ```
 conda create --name ev_motion_segmentation python=3.9
