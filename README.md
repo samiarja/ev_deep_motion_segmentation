@@ -8,7 +8,7 @@ Pytorch implementation
 
 [[Project Page](https://samiarja.github.io/evairborne/)] [[Paper]()]
 
-Work in progress...
+This readme is work in progress...
 
 # Installation
 ```
