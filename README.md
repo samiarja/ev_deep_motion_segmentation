@@ -1,6 +1,9 @@
 # Motion Segmentation for Neuromorphic Airborne Surveillance
 Pytorch implementation
 
+![](figures/motion_segmentation_network_EV-IMO_box_seq_01.gif)
+
+
 **Authors**: *[Sami Arja](https://samiarja.com/)*
 
 [[Project Page](https://samiarja.github.io/evairborne/)] [[Paper]()]
