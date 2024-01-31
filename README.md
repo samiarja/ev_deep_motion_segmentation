@@ -21,4 +21,4 @@ sudo apt install -y build-essentials
 
 
 ## Acknowledgement
-MSNAS code is built on top of [TokenCut](https://github.com/YangtaoWANG95/TokenCut_video), [DINO](https://github.com/facebookresearch/dino), [RAFT](https://github.com/princeton-vl/RAFT), and [event_warping](https://github.com/neuromorphicsystems/event_warping). We would like to sincerely thanks those authors for their great works. 
+This code is built on top of [TokenCut](https://github.com/YangtaoWANG95/TokenCut_video), [DINO](https://github.com/facebookresearch/dino), [RAFT](https://github.com/princeton-vl/RAFT), and [event_warping](https://github.com/neuromorphicsystems/event_warping). We would like to sincerely thanks those authors for their great works. 
