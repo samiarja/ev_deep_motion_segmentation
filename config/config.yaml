@@ -29,9 +29,9 @@ size_mask_neighborhood: 5
 batch_size: 5
 topk: 8
 radius: 5
-chunk_size: 30000.0
+chunk_size: 30000.0 #integration window for contrast maximization, data-dependant
 
-# es_to_frames command for command_line_tools
+# es_to_frames command from the command_line_tools
 timediff: 00:00:00.005
 start_time: 00:00:00.000
 finish_time: 00:00:05.000
