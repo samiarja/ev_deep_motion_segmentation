@@ -1,15 +1,15 @@
-data: EED
+data: EED #[DistSurf,EED,EV-Airborne,EV-IMO,EV-IMO2,HKUST-EMS]
 seq: what_is_background
-out_dir: ./output
-arch: vit_small #["moco_vit_small","moco_vit_base","mae_vit_base","vit_base","resnet50"]
-patch_size: 16
-min_size: 320
+out_dir: output #it can be any name you want
+arch: vit_small #[moco_vit_small,moco_vit_base,mae_vit_base,vit_base,resnet50]
+patch_size: 16 # patch size of the vision transformer model
+min_size: 320 #this is the resolution of the optical flow frame, data-dependant
 time_surface_decay: 10000
-tau: 0.4
-gap: 1
+tau: 0.4 #this is recommended
+gap: 1 #for raft
 fusion_mode: flow #["mean","max","min","img","flow"]
-flow_model: RAFT
-alpha: 0.4
+flow_model: RAFT #default optical flow, you can add your own optical flow if you wish
+alpha: 0.4 #this is recommended
 max_frame: 5
 
 # bs parameters
