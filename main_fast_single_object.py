@@ -11,19 +11,16 @@ import graph
 import tools
 import networks
 import datetime
-import blur_detector
-import event_warping
 from torchvision import transforms 
 from datasets import extract_feat_info
-from PIL import Image
+from PIL import Image, ImageDraw
 from tqdm import tqdm
+import event_warping
 from DataLoader import DataLoader
 import numpy.lib.recfunctions as rfn
-import matplotlib.pyplot as plt
-
 
 '''
-Deep Unsupervised Motion Segmentation for Event Cameras 
+Deep Unsupervised Motion Segmentation for Event Cameras (DUMSEC)
 This project make use of TokenCut, OCLR, Dino, RAFT, blur_detection and event_warping
 '''
 
@@ -67,13 +64,13 @@ timediff_timecode       = event_warping.seconds_to_timecode(timediff)
 start_time_timecode     = event_warping.seconds_to_timecode(start_time)
 finish_time_timecode    = event_warping.seconds_to_timecode(finish_time)
 
-event_name              = f"{out_dir}/{data}_{seq}"
-flow_model              = "./raft-sintel.pth"
-data_path               = os.path.join(event_name, "input_frames")
-out_vis                 = os.path.join(event_name, 'coarse/')
-out_vis_rgb             = os.path.join(event_name, 'rgb/')
+event_name             = f"{out_dir}/{data}_{seq}"
+flow_model             = "./raft-sintel.pth"
+data_path              = os.path.join(event_name, "input_frames")
+out_vis                = os.path.join(event_name, 'coarse/')
+out_vis_rgb            = os.path.join(event_name, 'rgb/')
 if bs:
-    seg_path            = os.path.join(event_name, 'bs/')
+    seg_path           = os.path.join(event_name, 'bs/')
 else:
     seg_path            = os.path.join(event_name, 'crf/')
 tt_output_path          = os.path.join(event_name, 'tt_adapt/')
@@ -111,7 +108,7 @@ cmd1 = (
     f" -i ../../../Dataset/{data}/{data}_{seq}_events.es"
     f" -o ../../../{image_directory}"
     f" -s linear"
-    f" -t 10000"
+    f" -t 300000"
     f" -f {timediff_timecode}"
     f" -b {start_time_timecode}"
     f" -e {finish_time_timecode}"
@@ -130,7 +127,7 @@ cmd2 = (
     f"   ffmpeg -i \"$file\" -vf 'format=rgb24,vflip' \"${{file%.ppm}}.png\" >/dev/null 2>&1;"
     f" done &&"
     f" rm *.ppm &&"
-    f" ls -1 | grep '\.png$' | sort | head -n 2 | xargs -d '\\n' rm --"
+    f" ls -1 | grep '\.png$' | sort | head -n 1 | xargs -d '\\n' rm --"
 )
 os.system(cmd2)
 os.chdir(os.path.expanduser("../../../"))
@@ -185,7 +182,7 @@ raft_input_dir = './raft/input'
 if os.path.exists(raft_input_dir):
     shutil.rmtree(raft_input_dir)
 
-
+start_time = time.time()
 event_warping.print_message("Extract features from frame", color='cyan', style='bold')
 img_names, nb_node, nb_img, feat_h, feat_w, feats, arr_h, arr_w, frame_id, pil, _ = extract_feat_info('',  
                                                                                         data_path,
@@ -195,6 +192,11 @@ img_names, nb_node, nb_img, feat_h, feat_w, feats, arr_h, arr_w, frame_id, pil, 
                                                                                         model,
                                                                                         transform,
                                                                                         )
+end_time = time.time()
+execution_time = (end_time - start_time) * 1000
+print(f"Execution time for frame features: {execution_time} ms")
+
+start_time = time.time()
 event_warping.print_message("Extract features from flow", color='magenta', style='bold')
 img_names, _, nb_flow, feat_h_flow, feat_w_flow, feats_flow, arr_h_flow, arr_w_flow, frame_id, _, flow = extract_feat_info('',
                                                                                         data_path,
@@ -206,13 +208,21 @@ img_names, _, nb_flow, feat_h_flow, feat_w_flow, feats_flow, arr_h_flow, arr_w_f
                                                                                         flow_img_dir,
                                                                                         flow_dir,
                                                                                         )
+end_time = time.time()
+execution_time = (end_time - start_time) * 1000
+print(f"Execution time for flow features: {execution_time} ms")
+
 assert nb_flow == nb_img 
 assert feat_h == feat_h_flow
 assert feat_w == feat_w_flow
 
 event_warping.print_message(f"Building the graph, {nb_node} nodes", color='red', style='bold')
 if not single_frame:
+    start_time = time.time()
     foreground = graph.build_graph(nb_img, nb_node, feats, feats_flow, frame_id, arr_w, arr_h, tau, alpha, fusion_mode = fusion_mode, max_frame=max_frame)
+    end_time = time.time()
+    execution_time = (end_time - start_time) * 1000
+    print(f"Execution time for graph: {execution_time} ms")
 else:
     foreground = graph.build_graph_single_frame(nb_img, feats, feats_flow, frame_id, arr_w, arr_h, tau, alpha, fusion_mode = fusion_mode)
 foreground = foreground.reshape(nb_img, feat_h, feat_w)
@@ -241,9 +251,11 @@ for img_id in tqdm(range(nb_img)):
 event_warping.print_message(f"Running test-time adaptation to enhance flow-predicted masks", color='cyan', style='bold')
 if not os.path.exists(tt_output_path):
     os.makedirs(tt_output_path)
+
+start_time = time.time()
 cmd = (
     f"python dino/eval_adaptation.py"
-    f" --arch {arch}"
+    f" --arch vit_small"
     f" --patch_size {patch_size}"
     f" --n_last_frames {n_last_frames}"
     f" --size_mask_neighborhood {size_mask_neighborhood}"
@@ -255,6 +267,9 @@ cmd = (
 )
 os.system(cmd)
 
+end_time = time.time()
+execution_time = (end_time - start_time) * 1000
+print(f"Execution time for DMR: {execution_time} ms")
 
 event_warping.print_message(f"Overlay test-time adaptation masks on original images", color='red', style='bold')
 num_files = len([f for f in os.listdir(tt_output_path) if os.path.isfile(os.path.join(tt_output_path, f))])
@@ -277,6 +292,7 @@ mask_path     = gb.glob(f"{tt_output_path}/*.png")
 image_paths.sort()
 mask_path.sort()
 events = rfn.append_fields(events, ['l','cl', 'vx', 'vy'], [np.zeros(len(events["x"]), dtype=np.float64)] * 4, usemask=False) # type: ignore
+
 
 for i in tqdm(range(0, len(image_paths)-1)):
     previous_frame_path = image_paths[i]
@@ -314,9 +330,9 @@ for i in tqdm(range(0, len(image_paths)-1)):
                     if prev_mask[new_y, new_x] and next_mask[new_y, new_x]:
                         labels[j] = 1
                         label_assigned = True
-                        break  # Exit the loop once a label is assigned
+                        break # Exit the loop once a label is assigned
                         
-            if label_assigned:  # Exit the outer loop if a label is assigned
+            if label_assigned: # Exit the outer loop if a label is assigned
                 break
 
     events['l'][ii] = labels
@@ -325,150 +341,90 @@ for i in tqdm(range(0, len(image_paths)-1)):
 event_warping.print_message(f"Saving events with motion segmentation labels", color='red', style='bold')
 with h5py.File(f'{event_name}/{data}_{seq}_events_with_motion_inter.h5', 'w') as hf:
     hf.create_dataset("events", data=np.asarray(events))
-    
+
 
 event_warping.print_message(f"Motion compensation by contrast maximisation", color='green', style='bold')
 with h5py.File(f'{event_name}/{data}_{seq}_events_with_motion_inter.h5', 'r') as hf:
-        events = hf['events'][:] # type: ignore
+    events = hf['events'][:]
 
+BBOX           = False
+image_paths    = gb.glob(f"{data_path}/*.png")
+bbox_path      = f'../../Dataset/{data}/{seq}/boundingbox.txt'
+bbox_exists = False
+if os.path.exists(bbox_path):
+    bounding_boxes = event_warping.read_bbox_file(bbox_path)
+    bbox_exists = True
 if not os.path.exists(motioncompL_output_path):
-    os.makedirs(motioncompL_output_path, exist_ok=True)
-image_paths     = gb.glob(f"{data_path}/*.png")
+        os.makedirs(motioncompL_output_path, exist_ok=True)
 image_paths.sort()
 first_timestamp = int(os.path.basename(image_paths[0]).split('_')[1].split('.')[0])
 last_timestamp  = int(os.path.basename(image_paths[-1]).split('_')[1].split('.')[0])
+sequence_number = 1
 unique_labels   = np.unique(events["l"])
 
-DILATION = 30
-STOP     = 0.1
-
-sequence_number = 1
 for chunk_start in np.arange(first_timestamp, last_timestamp, chunk_size):
-    chunk_end               = chunk_start + chunk_size
-    ii                      = np.where(np.logical_and(events["t"] >= chunk_start, events["t"] < chunk_end))
-    selected_events         = events[ii]
-    events["cl"][ii]        = 0
-    events["vx"][ii]        = 0
-    events["vy"][ii]        = 0
-    initial_unlabeled_count = np.sum(selected_events["cl"] == 0)
-    
+    chunk_end       = chunk_start + chunk_size
+    ii              = np.where(np.logical_and(events["t"] >= chunk_start, events["t"] < chunk_end))
+    selected_events = events[ii]
+    event_warping.print_message(f"Processing chunk: {int(chunk_start)}", color='yellow', style='bold')
+
     if np.any(selected_events["l"] > 0):
-        motion_discrete_label = 0
-        
-        event_warping.print_message(f"Processing chunk: {int(chunk_start)}", color='yellow', style='bold')
-        event_warping.print_message(f"Estimate background motion", color='magenta', style='bold')
-        selected_indices = np.where(selected_events["l"] == 0)[0]
-        background_events = selected_events[selected_indices]
-        best_velocity, highest_variance = event_warping.find_best_velocity_with_iteratively(sensor_size, background_events, increment=100)
-        events["cl"][ii[0][selected_indices]] = 0
-        events["vx"][ii[0][selected_indices]] = best_velocity[0] # type: ignore
-        events["vy"][ii[0][selected_indices]] = best_velocity[1] # type: ignore
+        unique_labels = np.unique(selected_events["l"])
+        for current_label in unique_labels:
+            event_warping.print_message(f"Processing events where label = {current_label}", color='blue', style='bold')
+            selected_indices                = np.where(selected_events["l"] == current_label)
+            best_velocity, highest_variance = event_warping.find_best_velocity_with_iteratively(sensor_size, selected_events[selected_indices], increment=100)
+            warped_image_before             = event_warping.accumulate_pixel_map(sensor_size, selected_events[selected_indices], best_velocity) # type: ignore
+            cumulative_map                  = warped_image_before['cumulative_map']
+            event_indices                   = warped_image_before['event_indices']
+            warped_image                    = event_warping.render(cumulative_map, colormap_name="magma", gamma=lambda image: image ** (1 / 3))
+            events["vx"][ii[0][selected_indices]] = best_velocity[0] # type: ignore
+            events["vy"][ii[0][selected_indices]] = best_velocity[1] # type: ignore
 
         cumulative_map_object, seg_label = event_warping.accumulate_cnt_rgb((width, height),
                                                                             events[ii],
-                                                                            events["cl"][ii].astype(np.int32),
+                                                                            events["l"][ii].astype(np.int32),
                                                                             (events["vx"][ii],events["vy"][ii]))
         warped_image_segmentation_rgb = event_warping.rgb_render(cumulative_map_object, seg_label)
-        output_filename = f"{sequence_number:06d}_{chunk_start}_{data}_{seq}.png"
-        # warped_image_segmentation_rgb = warped_image_segmentation_rgb.transpose(Image.FLIP_TOP_BOTTOM)
-        warped_image_segmentation_rgb.save(os.path.join(motioncompL_output_path, output_filename))
-
-        while np.any(selected_events["cl"] == 0):
-            event_warping.print_message(f"Processing events where label = {1}", color='blue', style='bold')
-
-            unlabeled_indices = np.where(selected_events["cl"] == 0)[0]
-            if len(unlabeled_indices) == 0:
-                event_warping.print_message("No unlabeled events left, breaking the while loop", color='green', style='bold')
-                break
-            
-            selected_indices = np.where(selected_events["l"] == 1)[0]
-            combined_indices = np.intersect1d(selected_indices, np.where(selected_events["cl"] == 0)[0])
-
-            if combined_indices.size == 0:
-                event_warping.print_message("No combined indices left, breaking the while loop", color='green', style='bold')
-                break
-            
-            if combined_indices.size > 0:
-                motion_discrete_label += 1
-                best_velocity, highest_variance = event_warping.find_best_velocity_with_iteratively(sensor_size, selected_events[combined_indices], increment=100)
-                warped_image_before             = event_warping.accumulate_pixel_map(sensor_size, selected_events[combined_indices], best_velocity) # type: ignore
-                cumulative_map                  = warped_image_before['cumulative_map']
-                event_indices                   = warped_image_before['event_indices']
-                flipped_event_indices           = event_indices[::-1]
-                warped_image                    = event_warping.render(cumulative_map, colormap_name="magma", gamma=lambda image: image ** (1 / 3))
-                
-                event_warping.print_message(f"Blur detection - {chunk_start}", color='red', style='bold')
-                blur_map                        = blur_detector.detectBlur(cumulative_map.pixels,
-                                                                           downsampling_factor=1,
-                                                                           num_scales=2,
-                                                                           scale_start=1,
-                                                                           entropy_filt_kernel_sze=2,
-                                                                           sigma_s_RF_filter=1,
-                                                                           sigma_r_RF_filter=1,
-                                                                           num_iterations_RF_filter=0,
-                                                                           show_progress = False)
-
-                blr_img, subt_img, unique_idx   = event_warping.generate_overlay_and_indices(blur_map, warped_image,
-                                                                                             removeFactor=1, 
-                                                                                             flipped_event_indices=event_indices)
-
-                processed_image  = event_warping.process_blurry_image(blr_img, dilation_size=DILATION, size_threshold=0)
-                
-                image_height     = processed_image.shape[0]
-                
-                for event_idx, (x, y) in enumerate(zip(selected_events["x"], selected_events["y"])):
-                    flipped_y = image_height - 1 - y # Flip the y-coordinate vertically
-                    if processed_image[flipped_y, x]: # Check if the flipped (x, y) position corresponds to a white pixel
-                        selected_events["cl"][event_idx] = motion_discrete_label
-                        events["cl"][ii[0][event_idx]]   = motion_discrete_label # Label the event
-                        events["vx"][ii[0][event_idx]]   = best_velocity[0] # type: ignore
-                        events["vy"][ii[0][event_idx]]   = best_velocity[1] # type: ignore
-
-                unlabeled_indices = np.where(selected_events["cl"] == 0)[0]
-                current_unlabeled_count = len(unlabeled_indices)
-
-                cumulative_map_object, seg_label = event_warping.accumulate_cnt_rgb((width, height),
-                                                                            events[ii],
-                                                                            events["cl"][ii].astype(np.int32),
-                                                                            (events["vx"][ii],events["vy"][ii]))
-                warped_image_segmentation_rgb    = event_warping.rgb_render(cumulative_map_object, seg_label)
-
-                output_filename = f"{sequence_number:06d}_{chunk_start}_{data}_{seq}.png"
-                # warped_image_segmentation_rgb = warped_image_segmentation_rgb.transpose(Image.FLIP_TOP_BOTTOM)
-                warped_image_segmentation_rgb.save(os.path.join(motioncompL_output_path, output_filename))
-                
-                event_warping.print_message(f"Overwriting the events with motion segmentation labels", color='red', style='bold')
-                with h5py.File(f'{event_name}/{data}_{seq}_events_with_motion_inter.h5', 'w') as hf:
-                    hf.create_dataset("events", data=np.asarray(events))
-
-                if initial_unlabeled_count > 0 and current_unlabeled_count / initial_unlabeled_count < STOP: #bind it with the event rate?
-                    event_warping.print_message(f"Less than 10% unlabeled events remain for chunk starting at {int(chunk_start)}", color='yellow', style='bold')
-                    break
-
+        if BBOX and bbox_exists:
+            image_height = warped_image_segmentation_rgb.height
+            draw = ImageDraw.Draw(warped_image_segmentation_rgb)
+            for bbox in [b for b in bounding_boxes if b["timestamp"] >= chunk_start and b["timestamp"] < chunk_end]:
+                # Adjust y-coordinates for vertical flip
+                flipped_y_top = image_height - 1 - bbox["y"] - bbox["h"]
+                flipped_y_bottom = image_height - 1 - bbox["y"]
+                draw.rectangle([bbox["x"], flipped_y_top, bbox["x"] + bbox["w"], flipped_y_bottom], outline="red")
+        output_filename = f"{sequence_number:06d}_{chunk_start}.png"
+        flipped_warped_image_segmentation_rgb = warped_image_segmentation_rgb.transpose(Image.FLIP_TOP_BOTTOM)
+        flipped_warped_image_segmentation_rgb.save(os.path.join(motioncompL_output_path, output_filename))
         sequence_number += 1
     else:
         event_warping.print_message("No labels > 0, processing all events.", color='magenta', style='bold')
-        selected_indices                = np.where(selected_events)
+        selected_indices = np.where(selected_events)
         best_velocity, highest_variance = event_warping.find_best_velocity_with_iteratively(sensor_size, selected_events[selected_indices], increment=100)
         warped_image_before             = event_warping.accumulate_pixel_map(sensor_size, selected_events[selected_indices], best_velocity) # type: ignore 
         cumulative_map                  = warped_image_before['cumulative_map']
         event_indices                   = warped_image_before['event_indices']
-        flipped_event_indices           = event_indices[::-1]
         warped_image                    = event_warping.render(cumulative_map, colormap_name="magma",gamma=lambda image: image ** (1 / 3))
-        events["cl"][ii[0][selected_indices]] = 0
         events["vx"][ii[0][selected_indices]] = best_velocity[0] # type: ignore
         events["vy"][ii[0][selected_indices]] = best_velocity[1] # type: ignore
         
-        cumulative_map_object, seg_label = event_warping.accumulate_cnt_rgb(
-            (width, height),
-            selected_events,
-            selected_events["cl"].astype(np.int32),
-            (events["vx"][ii],events["vy"][ii])
-        )
+        cumulative_map_object, seg_label = event_warping.accumulate_cnt_rgb((width, height),
+                                                                            events[ii],
+                                                                            events["l"][ii].astype(np.int32),
+                                                                            (events["vx"][ii],events["vy"][ii]))
         warped_image_segmentation_rgb = event_warping.rgb_render(cumulative_map_object, seg_label)
-        output_filename = f"{sequence_number:06d}_{chunk_start}_{data}_{seq}.png"
-        # warped_image_segmentation_rgb = warped_image_segmentation_rgb.transpose(Image.FLIP_TOP_BOTTOM)
-        warped_image_segmentation_rgb.save(os.path.join(motioncompL_output_path, output_filename))
+        if BBOX and bbox_exists:
+            image_height = warped_image_segmentation_rgb.height
+            draw = ImageDraw.Draw(warped_image_segmentation_rgb)
+            for bbox in [b for b in bounding_boxes if b["timestamp"] >= chunk_start and b["timestamp"] < chunk_end]:
+                # Adjust y-coordinates for vertical flip
+                flipped_y_top = image_height - 1 - bbox["y"] - bbox["h"]
+                flipped_y_bottom = image_height - 1 - bbox["y"]
+                draw.rectangle([bbox["x"], flipped_y_top, bbox["x"] + bbox["w"], flipped_y_bottom], outline="red")
+        output_filename = f"{sequence_number:06d}_{chunk_start}.png"
+        flipped_warped_image_segmentation_rgb = warped_image_segmentation_rgb.transpose(Image.FLIP_TOP_BOTTOM)
+        flipped_warped_image_segmentation_rgb.save(os.path.join(motioncompL_output_path, output_filename))
         sequence_number += 1
 
     event_warping.print_message(f"Overwriting the events with motion segmentation labels", color='red', style='bold')
@@ -476,34 +432,29 @@ for chunk_start in np.arange(first_timestamp, last_timestamp, chunk_size):
         hf.create_dataset("events", data=np.asarray(events))
 
 event_warping.print_message(f"Produce motion segmentation frames", color='blue', style='bold')
-with h5py.File(f'{event_name}/{data}_{seq}_events_with_motion_inter.h5', 'r') as hf:
-        events = hf['events'][:] # type: ignore
-
 if not os.path.exists(motioncomp_output_path):
-        os.makedirs(motioncomp_output_path, exist_ok=True)
-image_paths        = gb.glob(f"{data_path}/*.png") 
+    os.makedirs(motioncomp_output_path, exist_ok=True)
+image_paths = gb.glob(f"{data_path}/*.png")
 image_paths.sort()
 previous_timestamp = int(os.path.basename(image_paths[0]).split('_')[1].split('.')[0])
-next_timestamp     = int(os.path.basename(image_paths[1]).split('_')[1].split('.')[0])
-last_timestamp     = int(os.path.basename(image_paths[-1]).split('_')[1].split('.')[0])
-chunk_timediff     = next_timestamp - previous_timestamp
-
+next_timestamp = int(os.path.basename(image_paths[1]).split('_')[1].split('.')[0])
+last_timestamp = int(os.path.basename(image_paths[-1]).split('_')[1].split('.')[0])
+chunk_timediff = next_timestamp - previous_timestamp
 sequence_number = 1
-for chunk_start in np.arange(previous_timestamp, last_timestamp+chunk_timediff, chunk_timediff):
-    chunk_end              = chunk_start + chunk_timediff
-    ii                     = np.where(np.logical_and(events["t"] >= chunk_start, events["t"] < chunk_end))
+for chunk_start in np.arange(previous_timestamp, last_timestamp + chunk_timediff, chunk_timediff):
+    chunk_end = chunk_start + chunk_timediff
+    ii = np.where(np.logical_and(events["t"] >= chunk_start, events["t"] < chunk_end))
     cumulative_map_object, seg_label = event_warping.accumulate_cnt_rgb(
         (width, height),
         events[ii],
-        events[ii]["cl"].astype(np.int32),
-        (events["vx"][ii],events["vy"][ii])
+        events[ii]["l"].astype(np.int32),
+        (events["vx"][ii], events["vy"][ii])
     )
     warped_image_segmentation_rgb = event_warping.rgb_render(cumulative_map_object, seg_label)
-    output_filename = f"{sequence_number:06d}_{chunk_start}_{data}_{seq}.png"
-    warped_image_segmentation_rgb = warped_image_segmentation_rgb.transpose(Image.FLIP_TOP_BOTTOM)
-    warped_image_segmentation_rgb.save(os.path.join(motioncomp_output_path, output_filename))
+    output_filename = f"{sequence_number:06d}_{chunk_start}.png"
+    flipped_warped_image_segmentation_rgb = warped_image_segmentation_rgb.transpose(Image.FLIP_TOP_BOTTOM)
+    flipped_warped_image_segmentation_rgb.save(os.path.join(motioncomp_output_path, output_filename))
     sequence_number += 1
-
 
 event_warping.print_message(f"Convert the frames to video for illustration", color='cyan', style='bold')
 folders = {
@@ -516,7 +467,7 @@ folders = {
     f"{data}_{seq}_motion_segmentation_L": motioncompL_output_path
 }
 
-lower_frame_rate = 10
+lower_frame_rate = 10 # for motion_segmentation_L
 
 for folder_name, folder_path in folders.items():
     frame_rate = lower_frame_rate if folder_name.endswith("_L") else 30
@@ -554,7 +505,8 @@ cmd = (
 )
 os.system(f"{cmd} >/dev/null 2>&1")
 
-event_warping.print_message(f"Save network configuration", color='green', style='bold')
+
+event_warping.print_message(f"Save configuration", color='green', style='bold')
 shutil.copy(config_path, f'{event_name}/config_{data}_{seq}.yaml')
 
 end_time = time.time()
