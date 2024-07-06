@@ -1,39 +1,38 @@
-# Parameters for argument parser
-data: stars
-seq: 2022-03-31T11-53-06Z_speed_survey_191.930378_-59.688764_0.03125
+data: EED
+seq: what_is_background
+out_dir: ./output
 arch: vit_small #["moco_vit_small","moco_vit_base","mae_vit_base","vit_base","resnet50"]
 patch_size: 16
-min_size: 640
+min_size: 320
+time_surface_decay: 10000
 tau: 0.4
-gap: 3
-fusion_mode: flow #["mean","max","min","img","flow"] #try max after then flow
+gap: 1
+fusion_mode: flow #["mean","max","min","img","flow"]
 flow_model: RAFT
 alpha: 0.4
 max_frame: 5
 
-# Bilateral solver parameters (smaller values increase mask size)
+# bs parameters
 bilateral_solver:
   use: true
-  sigma_spatial: 6
-  sigma_luma: 6
-  sigma_chroma: 3
+  sigma_spatial: 2
+  sigma_luma: 2
+  sigma_chroma: 2
 
-# Parameters used in crf
+# crf parameters
 crf: true
 single_frame: false
 
-# Output directory
-out_dir: ./output
-
-# Other parameters
-n_last_frames: 5
-size_mask_neighborhood: 10
-batch_size: 3
+# Dynamic mask refinement parameters
+n_last_frames: 10
+size_mask_neighborhood: 5
+batch_size: 5
 topk: 8
-radius: 10
-chunk_size: 50000 #0.03 * 1e6
+radius: 5
+chunk_size: 30000.0
 
-# Parameters for es_to_frames command
-timediff: 00:00:00.010
-start_time: 00:00:02.700
-finish_time: 00:00:08.400
+# es_to_frames command for command_line_tools
+timediff: 00:00:00.005
+start_time: 00:00:00.000
+finish_time: 00:00:05.000
+
