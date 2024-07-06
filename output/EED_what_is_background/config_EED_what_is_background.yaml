@@ -1,0 +1,40 @@
+# Parameters for argument parser
+data: EED
+seq: what_is_background
+arch: vit_small #["moco_vit_small","moco_vit_base","mae_vit_base","vit_base","resnet50"]
+patch_size: 16
+min_size: 320
+tau: 0.4
+gap: 1
+fusion_mode: max #["mean","max","min","img","flow"]
+flow_model: RAFT
+alpha: 0.4
+max_frame: 5
+
+# Bilateral solver parameters
+bilateral_solver:
+  use: true
+  sigma_spatial: 2
+  sigma_luma: 2
+  sigma_chroma: 2
+
+# Parameters used in crf
+crf: true
+single_frame: false
+
+# Output directory
+out_dir: ./output
+
+# Other parameters
+n_last_frames: 10
+size_mask_neighborhood: 5
+batch_size: 3
+topk: 8
+radius: 5
+chunk_size: 15000.0 #0.03 * 1e6
+
+# Parameters for es_to_frames command
+timediff: 00:00:00.005
+start_time: 00:00:00.000
+finish_time: 00:00:05.000
+
