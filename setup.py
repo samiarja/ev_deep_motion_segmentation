@@ -4,7 +4,7 @@ import setuptools.extension
 import setuptools.command.build_ext
 import sys
 
-eigen_path = "/home/samiarja/Desktop/PhD/Code/ev_deep_motion_segmentation/eigen-3.4.0"
+eigen_path = "./eigen-3.4.0"
 
 with open("README.md") as file:
     long_description = file.read()

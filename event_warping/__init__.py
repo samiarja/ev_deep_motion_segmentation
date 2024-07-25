@@ -782,6 +782,63 @@ def generate_overlay_and_indices(blur_map, warped_image, removeFactor=1, flipped
     return blur_map_image, overlay_image, unique_indices_to_remove
 
 
+def rgb_render_white(cumulative_map_object, l_values):
+    """Render the cumulative map using RGB values based on the frequency of each class, with a white background and save as PNG."""
+    
+    def generate_intense_palette(n_colors):
+        """Generate an array of intense and bright RGB colors, avoiding blue."""
+        base_palette = numpy.array([
+            [255, 255, 255],  # White (will invert to black)
+            [0, 255, 255],    # Cyan (will invert to red)
+            [255, 0, 255],    # Magenta (will invert to green)
+            [255, 255, 0],    # Yellow (will invert to blue)
+            [0, 255, 0],      # Green (will invert to magenta)
+            [255, 0, 0],      # Red (will invert to cyan)
+            [0, 128, 128],    # Teal (will invert to a light orange)
+            [128, 0, 128],    # Purple (will invert to a light green)
+            [255, 165, 0],    # Orange (will invert to a blue-green)
+            [128, 128, 0],    # Olive (will invert to a light blue)
+            [255, 192, 203],  # Pink (will invert to a light green-blue)
+            [165, 42, 42],    # Brown (will invert to a light blue-green)
+            [0, 100, 0],      # Dark Green (will invert to a light magenta)
+            [173, 216, 230],  # Light Blue (will invert to a darker yellow)
+            [245, 222, 179],  # Wheat (will invert to a darker blue)
+            [255, 20, 147],   # Deep Pink (will invert to a light cyan-green)
+            [75, 0, 130],     # Indigo (will invert to a lighter yellow)
+            [240, 230, 140],  # Khaki (will invert to a light blue)
+            [0, 0, 128],      # Navy (will invert to a light yellow)
+        ], dtype=numpy.uint8)
+        palette = numpy.tile(base_palette, (int(numpy.ceil(n_colors / base_palette.shape[0])), 1))
+        return palette[:n_colors]
+
+
+    cumulative_map = cumulative_map_object.pixels
+    height, width = cumulative_map.shape
+    rgb_image = numpy.ones((height, width, 3), dtype=numpy.uint8) * 255  # Start with a white background
+
+    unique, counts = numpy.unique(l_values[l_values != 0], return_counts=True)
+    sorted_indices = numpy.argsort(counts)[::-1]
+    sorted_unique = unique[sorted_indices]
+    sorted_unique = numpy.concatenate(([0], sorted_unique))
+
+    palette = generate_intense_palette(len(sorted_unique))
+    color_map = dict(zip(sorted_unique, palette))
+    
+    for label, color in color_map.items():
+        mask = l_values == label
+        if numpy.any(mask):
+            norm_intensity = cumulative_map[mask] / (cumulative_map[mask].max() + 1e-9)
+
+            norm_intensity = numpy.power(norm_intensity, 0.01)
+            blended_color = color * norm_intensity[:, numpy.newaxis]
+            rgb_image[mask] = numpy.clip(blended_color, 0, 255)
+    
+    image = Image.fromarray(rgb_image, 'RGB')
+    inverted_image = ImageOps.invert(image)
+    inverted_image = inverted_image.transpose(Image.FLIP_TOP_BOTTOM)
+    return inverted_image
+
+
 def rgb_render(cumulative_map_object, l_values):
     """Render the cumulative map using RGB values based on the frequency of each class."""
     

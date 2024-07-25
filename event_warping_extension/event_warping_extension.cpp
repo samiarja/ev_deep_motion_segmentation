@@ -1,7 +1,4 @@
 
-#include <Eigen/Dense>
-#include <unsupported/Eigen/MatrixFunctions>
-
 #include <Python.h>
 #include <structmember.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -11,6 +8,8 @@
 #include <numpy/arrayobject.h>
 #include <stdexcept>
 #include <vector>
+#include <Eigen/Dense>
+#include <unsupported/Eigen/MatrixFunctions>
 
 static PyObject* smooth_histogram(PyObject* self, PyObject* args) {
     PyObject* raw_values;
