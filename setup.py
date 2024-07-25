@@ -4,6 +4,8 @@ import setuptools.extension
 import setuptools.command.build_ext
 import sys
 
+eigen_path = "/home/samiarja/Desktop/PhD/Code/ev_deep_motion_segmentation/eigen-3.4.0"
+
 with open("README.md") as file:
     long_description = file.read()
 
@@ -15,6 +17,7 @@ class build_ext(setuptools.command.build_ext.build_ext):
         import numpy
 
         self.include_dirs.append(numpy.get_include())
+        self.include_dirs.append(eigen_path)  # Add Eigen path here
 
 
 extra_args = []
@@ -24,11 +27,11 @@ elif sys.platform == "darwin":
     extra_args += ["-std=c++11", "-stdlib=libc++"]
 
 setuptools.setup(
-    name="event_warping",
+    name="ev_deep_motion_segmentation",
     version="0.0.1",
-    author="ICNS, Alexandre Marcireau",
-    author_email="alexandre.marcireau@gmail.com",
-    description="Post-process ISS data",
+    author="ICNS, Sami Arja",
+    author_email="sami.arja@gmail.com",
+    description="Event-based motion segmentation for aerial surveillance",
     long_description=long_description,
     long_description_content_type="text/markdown",
     setup_requires=['numpy'],
@@ -52,7 +55,7 @@ setuptools.setup(
             "event_warping_extension",
             language="c++",
             sources=["event_warping_extension/event_warping_extension.cpp"],
-            include_dirs=[],
+            include_dirs=[],  # Leave this empty, it will be filled in build_ext
             libraries=[],
             extra_compile_args=extra_args,
             extra_link_args=extra_args,
@@ -60,3 +63,4 @@ setuptools.setup(
     ],
     cmdclass={"build_ext": build_ext},
 )
+

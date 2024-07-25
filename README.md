@@ -113,7 +113,13 @@ The structure of the folder is as follows:
 # Run
 
 ### Setup the config file
-Please see the `./config/config.yaml` for an example.
+Modify the eigen library path in `setup.py`:
+
+```
+eigen_path = "full/path/to/eigen/eigen-3.4.0"
+```
+
+Please see the `./config/config.yaml` for an example on how to setup the initial parameters.
 
 Modify the entries to specify the `dataset` and `seq` and other parameters.
 
