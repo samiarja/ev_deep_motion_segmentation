@@ -87,7 +87,7 @@ conda install -c conda-forge pydensecrf
 ```
 
 # Download dataset
-You can download all the dataset from [google drive](https://drive.google.com/drive/folders/1TqXeb1tZFUSCpnRw-I5O9jDUfzIUIoQw)
+You can download all the dataset from [google drive](https://drive.google.com/drive/folders/1iE8hitzrr1lO4TD4Af4u-JknKvFecfTc?usp=sharing)
 The structure of the folder is as follows:
 
 ```
