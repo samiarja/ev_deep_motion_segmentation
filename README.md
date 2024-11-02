@@ -1,6 +1,6 @@
-# Unsupervised Motion Segmentation for Neuromorphic Aerial Surveillance
+# Motion Segmentation for Neuromorphic Aerial Surveillance
 
-This is the official repository for [Unsupervised Motion Segmentation for Neuromorphic Aerial Surveillance
+This is the official repository for [Motion Segmentation for Neuromorphic Aerial Surveillance
 ](https://arxiv.org/abs/2405.15209) by [Sami Arja](https://samiarja.com/), Alexandre Marcireau, Saeed Afshar, Bharath Ramesh, Gregory Cohen
 
 ![](figures/motion_segmentation_network_EV-Airborne_recording_2023-04-26_15-30-21_cut2.gif)
@@ -34,8 +34,8 @@ This is the official repository for [Unsupervised Motion Segmentation for Neurom
 If you use this work in your research, please cite it:
 
 ```bibtex
-@misc{arja_unsupervised_2024,
-	title = {Unsupervised Motion Segmentation for Neuromorphic Aerial Surveillance},
+@misc{arja_motionseg_2024,
+	title = {Motion Segmentation for Neuromorphic Aerial Surveillance},
 	url = {http://arxiv.org/abs/2405.15209},
 	publisher = {arXiv},
 	author = {Arja, Sami and Marcireau, Alexandre and Afshar, Saeed and Ramesh, Bharath and Cohen, Gregory},
