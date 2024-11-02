@@ -39,7 +39,7 @@ If you use this work in your research, please cite it:
 	url = {http://arxiv.org/abs/2405.15209},
 	publisher = {arXiv},
 	author = {Arja, Sami and Marcireau, Alexandre and Afshar, Saeed and Ramesh, Bharath and Cohen, Gregory},
-	month = may,
+	month = oct,
 	year = {2024},
 }
 ```
