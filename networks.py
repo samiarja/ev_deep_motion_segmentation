@@ -88,6 +88,12 @@ def feature_extractor(arch, model, img_tensor):
                 feat_out["qkv"] = output
             model._modules["blocks"][-1]._modules["attn"]._modules["qkv"].register_forward_hook(hook_fn_forward_qkv)
 
+            device = "cpu" #"cuda"
+
+            # Move model and input tensor to the selected device
+            model = model.to(device)
+            img_tensor = img_tensor.to(device)
+
             # Forward pass in the model
             attentions = model.get_last_selfattention(img_tensor[None, :, :, :])
 

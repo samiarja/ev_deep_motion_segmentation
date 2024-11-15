@@ -23,8 +23,7 @@ import matplotlib.pyplot as plt
 
 
 '''
-Deep Unsupervised Motion Segmentation for Event Cameras 
-This project make use of TokenCut, OCLR, Dino, RAFT, blur_detection and event_warping
+Motion Segmentation for Neuromorphic Aerial Surveillance
 '''
 
 start_time = time.time()
@@ -41,6 +40,7 @@ data                    = config['data']
 seq                     = config['seq']
 patch_size              = config['patch_size']
 min_size                = config['min_size']
+time_surface_decay      = config['time_surface_decay']
 tau                     = config['tau']
 gap                     = config['gap']
 fusion_mode             = config['fusion_mode']
@@ -111,7 +111,7 @@ cmd1 = (
     f" -i ../../../Dataset/{data}/{data}_{seq}_events.es"
     f" -o ../../../{image_directory}"
     f" -s linear"
-    f" -t 10000"
+    f" -t {time_surface_decay}"
     f" -f {timediff_timecode}"
     f" -b {start_time_timecode}"
     f" -e {finish_time_timecode}"
@@ -539,7 +539,7 @@ cmd = (
     f" -i {folders[f'{data}_{seq}_raft_optical_flow']}/{data}_{seq}_raft_optical_flow.gif"
     f" -i {folders[f'{data}_{seq}_bilateral_solver']}/{data}_{seq}_bilateral_solver.gif"
     f" -i {folders[f'{data}_{seq}_test_time_adapt']}/{data}_{seq}_test_time_adapt.gif"
-    f" -i {folders[f'{data}_{seq}_final_overlay']}/{data}_{seq}_final_overlay.gif"
+    # f" -i {folders[f'{data}_{seq}_final_overlay']}/{data}_{seq}_final_overlay.gif"
     f" -i {folders[f'{data}_{seq}_motion_segmentation']}/{data}_{seq}_motion_segmentation.gif"
     f" -filter_complex \""
     f" [0:v]scale=-1:480:flags=lanczos[0s];"
@@ -547,8 +547,8 @@ cmd = (
     f" [2:v]scale=-1:480:flags=lanczos[2s];"
     f" [3:v]scale=-1:480:flags=lanczos[3s];"
     f" [4:v]scale=-1:480:flags=lanczos[4s];"
-    f" [5:v]scale=-1:480:flags=lanczos[5s];"
-    f" [0s][1s][2s][3s][4s][5s]hstack=inputs=6[v]\""
+    # f" [5:v]scale=-1:480:flags=lanczos[5s];"
+    f" [0s][1s][2s][3s][4s]hstack=inputs=5[v]\""
     f" -map \"[v]\""
     f" {event_name}/motion_segmentation_network_{data}_{seq}.gif"
 )

@@ -72,18 +72,8 @@ conda activate your_env_name
 ```sh
 git clone https://github.com/samiarja/ev_deep_motion_segmentation.git
 cd ev_deep_motion_segmentation
-conda create --name ev_motion_segmentation python=3.9
-conda activate ev_motion_segmentation
+conda env create -f environment.yml
 python3 -m pip install -e .
-conda install -c pytorch pytorch torchvision
-pip install tqdm
-pip install plotly
-pip install scikit-image
-pip install loris
-pip install einops
-pip install PyYAML
-pip install opencv-python
-conda install -c conda-forge pydensecrf
 ```
 
 # Download dataset
